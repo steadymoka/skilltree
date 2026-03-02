@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# skill-tree
 
-## Getting Started
+Manage and visualize AI coding agent skill trees from the terminal.
 
-First, run the development server:
+AI 코딩 에이전트(Claude Code, Codex)의 스킬을 중앙에서 관리하고, 프로젝트별로 링크하는 CLI 도구입니다.
+
+## Install
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm i -g skill-tree
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Or build from source:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd crate && cargo build --release
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usage
 
-## Learn More
+```bash
+# Interactive TUI
+skill-tree
 
-To learn more about Next.js, take a look at the following resources:
+# Initialize skill directory (~/.skill-tree/)
+skill-tree init
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Link skills by tag
+skill-tree link authentication logging
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Link a single skill
+skill-tree link-skill my-skill
 
-## Deploy on Vercel
+# Unlink
+skill-tree unlink my-skill
+skill-tree unlink --all
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Print skill tree
+skill-tree tree
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Open web dashboard
+skill-tree serve
+```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--path <dir>` | Target project path |
+| `--tool claude\|codex` | Target agent tool |
+
+## How it works
+
+```
+~/.skill-tree/           # Central skill repository
+├── skills.yaml          # Skill → tags mapping
+└── <skill-name>/        # Skill directories
+
+~/.claude/skills/        # Symlinks for Claude Code
+~/.codex/skills/         # Symlinks for Codex
+```
+
+1. `skill-tree init` — 중앙 저장소(`~/.skill-tree/`)를 초기화하고 기존 스킬을 마이그레이션
+2. TUI 또는 웹 대시보드에서 스킬을 태그별로 탐색
+3. `skill-tree link <tags>` — 태그에 해당하는 스킬을 현재 프로젝트에 심볼릭 링크
+4. 에이전트가 링크된 스킬을 자동으로 인식하여 활용
+
+## Development
+
+```bash
+# Rust CLI
+cd crate && cargo run
+
+# Web dashboard
+pnpm install && pnpm dev
+```
+
+## License
+
+MIT

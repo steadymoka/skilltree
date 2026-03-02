@@ -2,6 +2,8 @@
 name = "skill-tree"
 version = "0.1.0"
 edition = "2021"
+description = "Manage and visualize AI coding agent skill trees from the terminal"
+repository = "https://github.com/steadymoka/skill-tree"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
