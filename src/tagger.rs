@@ -26,42 +26,29 @@ pub fn set_tags(paths: &Paths, skill_name: &str, tags: &[String]) -> Result<()> 
         *current = new_tags;
         true
     })?;
-    println!("{}: [{}]", skill_name, tags.join(", "));
     Ok(())
 }
 
-/// Add a single tag to a skill.
-pub fn add_tag(paths: &Paths, skill_name: &str, tag: &str) -> Result<()> {
+/// Add a single tag to a skill. Returns whether the tag was actually added.
+pub fn add_tag(paths: &Paths, skill_name: &str, tag: &str) -> Result<bool> {
     let tag_owned = tag.to_string();
-    let changed = modify_skill_tags(paths, skill_name, |tags| {
+    modify_skill_tags(paths, skill_name, |tags| {
         if tags.contains(&tag_owned) {
             return false;
         }
         tags.push(tag_owned);
         tags.sort();
         true
-    })?;
-    if changed {
-        println!("{}: added '{}'", skill_name, tag);
-    } else {
-        println!("{} already has tag '{}'", skill_name, tag);
-    }
-    Ok(())
+    })
 }
 
-/// Remove a single tag from a skill.
-pub fn remove_tag(paths: &Paths, skill_name: &str, tag: &str) -> Result<()> {
-    let changed = modify_skill_tags(paths, skill_name, |tags| {
+/// Remove a single tag from a skill. Returns whether the tag was actually removed.
+pub fn remove_tag(paths: &Paths, skill_name: &str, tag: &str) -> Result<bool> {
+    modify_skill_tags(paths, skill_name, |tags| {
         let before = tags.len();
         tags.retain(|t| t != tag);
         tags.len() != before
-    })?;
-    if changed {
-        println!("{}: removed '{}'", skill_name, tag);
-    } else {
-        println!("{} does not have tag '{}'", skill_name, tag);
-    }
-    Ok(())
+    })
 }
 
 #[cfg(test)]

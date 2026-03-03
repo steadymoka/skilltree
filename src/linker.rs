@@ -9,7 +9,13 @@ use crate::fs_util::{self, Tool};
 use crate::yaml;
 
 /// Link all skills matching any of the given tags to a project directory.
-pub fn link_by_tags(paths: &Paths, project_path: &Path, tags: &[String], tool: Tool) -> Result<()> {
+/// Returns the number of newly linked skills.
+pub fn link_by_tags(
+    paths: &Paths,
+    project_path: &Path,
+    tags: &[String],
+    tool: Tool,
+) -> Result<usize> {
     let map = yaml::read_skills_yaml(&paths.skills_yaml)?;
     let tag_set: HashSet<&str> = tags.iter().map(|s| s.as_str()).collect();
 
@@ -31,18 +37,15 @@ pub fn link_by_tags(paths: &Paths, project_path: &Path, tags: &[String], tool: T
 
         let original = paths.skill_tree_dir.join(skill);
         if !original.exists() {
-            eprintln!("Warning: skill directory not found: {}", skill);
             continue;
         }
 
         fs_util::create_symlink(&original, &link_path)
             .with_context(|| format!("failed to link {}", skill))?;
-        println!("  Linked: {}", skill);
         linked += 1;
     }
 
-    println!("Done. {} skill(s) linked.", linked);
-    Ok(())
+    Ok(linked)
 }
 
 /// Link a single skill by name to a project directory.
@@ -73,7 +76,6 @@ pub fn unlink_skill(project_path: &Path, skill_name: &str, tool: Tool) -> Result
     let meta = match fs::symlink_metadata(&link_path) {
         Ok(m) => m,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            println!("{} is not linked in this project.", skill_name);
             return Ok(());
         }
         Err(e) => return Err(e.into()),
@@ -87,16 +89,15 @@ pub fn unlink_skill(project_path: &Path, skill_name: &str, tool: Tool) -> Result
     }
 
     fs::remove_file(&link_path).with_context(|| format!("failed to unlink {}", skill_name))?;
-    println!("Unlinked: {}", skill_name);
     Ok(())
 }
 
 /// Unlink all skill symlinks from a project.
-pub fn unlink_all(project_path: &Path, tool: Tool) -> Result<()> {
+/// Returns the number of unlinked skills.
+pub fn unlink_all(project_path: &Path, tool: Tool) -> Result<usize> {
     let skills_dir = fs_util::project_skills_dir(project_path, tool);
     if !skills_dir.exists() {
-        println!("No {} directory in this project.", tool.skills_subdir());
-        return Ok(());
+        return Ok(0);
     }
 
     let mut removed = 0;
@@ -105,14 +106,11 @@ pub fn unlink_all(project_path: &Path, tool: Tool) -> Result<()> {
         let meta = fs::symlink_metadata(entry.path())?;
         if meta.file_type().is_symlink() {
             fs::remove_file(entry.path())?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            println!("  Unlinked: {}", name);
             removed += 1;
         }
     }
 
-    println!("Done. {} skill(s) unlinked.", removed);
-    Ok(())
+    Ok(removed)
 }
 
 #[cfg(test)]

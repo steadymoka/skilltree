@@ -111,13 +111,17 @@ fn dispatch(command: Command, paths: &Paths) -> Result<()> {
         Command::Link { tags, path, tool } => {
             let project = resolve_project(path)?;
             let tool: Tool = tool.parse()?;
-            linker::link_by_tags(paths, &project, &tags, tool)
+            let linked = linker::link_by_tags(paths, &project, &tags, tool)?;
+            println!("Done. {} skill(s) linked.", linked);
+            Ok(())
         }
 
         Command::LinkSkill { skill, path, tool } => {
             let project = resolve_project(path)?;
             let tool: Tool = tool.parse()?;
-            linker::link_skill(paths, &project, &skill, tool)
+            linker::link_skill(paths, &project, &skill, tool)?;
+            println!("Linked: {}", skill);
+            Ok(())
         }
 
         Command::Unlink {
@@ -129,15 +133,23 @@ fn dispatch(command: Command, paths: &Paths) -> Result<()> {
             let project = resolve_project(path)?;
             let tool: Tool = tool.parse()?;
             if all {
-                linker::unlink_all(&project, tool)
+                let removed = linker::unlink_all(&project, tool)?;
+                println!("Done. {} skill(s) unlinked.", removed);
+                Ok(())
             } else if let Some(name) = skill {
-                linker::unlink_skill(&project, &name, tool)
+                linker::unlink_skill(&project, &name, tool)?;
+                println!("Unlinked: {}", name);
+                Ok(())
             } else {
                 anyhow::bail!("specify a skill name or --all");
             }
         }
 
-        Command::Tag { skill, tags } => tagger::set_tags(paths, &skill, &tags),
+        Command::Tag { skill, tags } => {
+            tagger::set_tags(paths, &skill, &tags)?;
+            println!("{}: [{}]", skill, tags.join(", "));
+            Ok(())
+        }
 
         Command::Tree => {
             let project_paths = load_project_paths();
