@@ -3,7 +3,7 @@ export const ko = {
     appName: "Skill Tree",
     appDescription: "스킬 관리 도구",
     notInstalled: "Skill Tree가 초기화되지 않았습니다",
-    notInstalledDesc: "'skill-tree init'을 실행하여 스킬 저장소를 초기화하세요.",
+    notInstalledDesc: "'skilltree init'을 실행하여 스킬 저장소를 초기화하세요.",
     empty: "데이터 없음",
   },
   skills: {

@@ -72,7 +72,7 @@ fn print_link(link: &ProjectLink) {
 
 pub fn print_tree(paths: &Paths, project_paths: &[String]) -> Result<()> {
     let map = yaml::read_skills_yaml(&paths.skills_yaml)
-        .context("skills.yaml not found — run `skill-tree init` first")?;
+        .context("skills.yaml not found — run `skilltree init` first")?;
     let central_dirs: HashSet<String> = scanner::scan_skill_dirs(&paths.skill_tree_dir)?
         .into_iter()
         .collect();

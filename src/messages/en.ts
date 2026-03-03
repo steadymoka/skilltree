@@ -5,7 +5,7 @@ export const en: Messages = {
     appName: "Skill Tree",
     appDescription: "Skill Management Tool",
     notInstalled: "Skill Tree is not initialized",
-    notInstalledDesc: "Run 'skill-tree init' to initialize your skill store.",
+    notInstalledDesc: "Run 'skilltree init' to initialize your skill store.",
     empty: "No data",
   },
   skills: {

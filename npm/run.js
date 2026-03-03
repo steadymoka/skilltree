@@ -6,7 +6,7 @@ const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
-const binaryName = os.platform() === "win32" ? "skill-tree.exe" : "skill-tree";
+const binaryName = os.platform() === "win32" ? "skilltree.exe" : "skilltree";
 const binaryPath = path.join(__dirname, "bin", binaryName);
 
 try {

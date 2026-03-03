@@ -17,8 +17,8 @@ import {
   linkSkillToProject,
   unlinkSkillFromProject,
   linkTagsToProject,
-} from "@/lib/actions/skill-tree";
-import type { Skill, ProjectSkillLink } from "@/lib/readers/skill-tree";
+} from "@/lib/actions/skilltree";
+import type { Skill, ProjectSkillLink } from "@/lib/readers/skilltree";
 
 interface Props {
   initialized: boolean;

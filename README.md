@@ -1,13 +1,13 @@
-# skill-tree
+# skilltree
 
 Manage and visualize AI coding agent skill trees from the terminal.
 
-AI 코딩 에이전트(Claude Code, Codex)의 스킬을 중앙에서 관리하고, 프로젝트별로 링크하는 CLI 도구입니다.
+A CLI tool for centrally managing skills for AI coding agents (Claude Code, Codex) and linking them per project.
 
 ## Install
 
 ```bash
-npm i -g skill-tree
+npm i -g skilltree
 ```
 
 Or build from source:
@@ -18,41 +18,63 @@ cd crate && cargo build --release
 
 ## Usage
 
+### Initialize
+
 ```bash
-# Interactive TUI
-skill-tree
+skilltree init
+```
 
-# Initialize skill directory (~/.skill-tree/)
-skill-tree init
+Sets up the central skill repository at `~/.skilltree/` and migrates any existing skills.
 
-# Link skills by tag
-skill-tree link authentication logging
+### Interactive TUI
 
-# Link a single skill
-skill-tree link-skill my-skill
+```bash
+skilltree
+```
 
-# Unlink
-skill-tree unlink my-skill
-skill-tree unlink --all
+Browse and manage skills interactively in the terminal.
 
-# Print skill tree
-skill-tree tree
+### Link skills
 
-# Open web dashboard
-skill-tree serve
+```bash
+# Link by tags
+skilltree link authentication logging
+
+# Link a single skill by name
+skilltree link-skill my-skill
+```
+
+### Unlink skills
+
+```bash
+# Unlink a specific skill
+skilltree unlink my-skill
+
+# Unlink all skills from the project
+skilltree unlink --all
+```
+
+### View & Explore
+
+```bash
+# Print skill tree in the terminal
+skilltree tree
+
+# Open the web dashboard
+skilltree serve
 ```
 
 ### Options
 
 | Flag | Description |
 |------|-------------|
-| `--path <dir>` | Target project path |
-| `--tool claude\|codex` | Target agent tool |
+| `--path <dir>` | Target project path (defaults to current directory) |
+| `--tool claude\|codex` | Target agent tool (defaults to `claude`) |
 
 ## How it works
 
 ```
-~/.skill-tree/           # Central skill repository
+~/.skilltree/            # Central skill repository
 ├── skills.yaml          # Skill → tags mapping
 └── <skill-name>/        # Skill directories
 
@@ -60,10 +82,10 @@ skill-tree serve
 ~/.codex/skills/         # Symlinks for Codex
 ```
 
-1. `skill-tree init` — 중앙 저장소(`~/.skill-tree/`)를 초기화하고 기존 스킬을 마이그레이션
-2. TUI 또는 웹 대시보드에서 스킬을 태그별로 탐색
-3. `skill-tree link <tags>` — 태그에 해당하는 스킬을 현재 프로젝트에 심볼릭 링크
-4. 에이전트가 링크된 스킬을 자동으로 인식하여 활용
+1. `skilltree init` — Initializes the central repository (`~/.skilltree/`) and migrates existing skills
+2. Browse skills by tag using the TUI or web dashboard
+3. `skilltree link <tags>` — Symlinks skills matching the given tags to the current project
+4. The agent automatically recognizes and uses the linked skills
 
 ## Development
 

@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 pub struct Paths {
     /// Legacy ~/.claude/skills (migration source)
     pub skills_dir: PathBuf,
-    /// ~/.skill-tree/
+    /// ~/.skilltree/
     pub skill_tree_dir: PathBuf,
     pub skills_yaml: PathBuf,
     pub link_skills_sh: PathBuf,
@@ -14,7 +14,7 @@ pub struct Paths {
 
 impl Paths {
     pub fn from_home(home: &std::path::Path) -> Self {
-        let skill_tree = home.join(".skill-tree");
+        let skill_tree = home.join(".skilltree");
         let skills_yaml = skill_tree.join("skills.yaml");
         let link_skills_sh = skill_tree.join("link-skills.sh");
         Self {

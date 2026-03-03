@@ -11,7 +11,7 @@ use crate::yaml;
 const LINK_SKILLS_SH: &str = r#"#!/usr/bin/env bash
 set -euo pipefail
 
-CENTRAL="$HOME/.skill-tree"
+CENTRAL="$HOME/.skilltree"
 YAML="$CENTRAL/skills.yaml"
 TOOL="${TOOL:-claude}"
 
@@ -51,23 +51,23 @@ pub fn initialize(paths: &Paths) -> Result<()> {
     let yaml_path = &paths.skills_yaml;
     let sh_path = &paths.link_skills_sh;
 
-    // 0. Migrate legacy ~/.claude/skills-central/ → ~/.skill-tree/
+    // 0. Migrate legacy ~/.claude/skills-central/ → ~/.skilltree/
     if let Some(parent) = skills.parent() {
         let legacy = parent.join("skills-central");
         if legacy.exists() && !central.exists() {
             fs::rename(&legacy, central)
-                .context("failed to migrate ~/.claude/skills-central/ to ~/.skill-tree/")?;
-            println!("Migrated: ~/.claude/skills-central/ → ~/.skill-tree/");
+                .context("failed to migrate ~/.claude/skills-central/ to ~/.skilltree/")?;
+            println!("Migrated: ~/.claude/skills-central/ → ~/.skilltree/");
         }
     }
 
-    // 1. Create ~/.skill-tree/ if needed
+    // 1. Create ~/.skilltree/ if needed
     if !central.exists() {
-        fs::create_dir_all(central).context("failed to create ~/.skill-tree/")?;
+        fs::create_dir_all(central).context("failed to create ~/.skilltree/")?;
         println!("Created {}", central.display());
     }
 
-    // 2. Move real directories from ~/.claude/skills/ to ~/.skill-tree/
+    // 2. Move real directories from ~/.claude/skills/ to ~/.skilltree/
     //    and leave symlinks in their place
     if skills.exists() {
         let real_dirs = scanner::scan_real_dirs(skills)?;
@@ -78,10 +78,10 @@ pub fn initialize(paths: &Paths) -> Result<()> {
                 continue;
             }
             fs::rename(&src, &dst)
-                .with_context(|| format!("failed to move {} to skill-tree", name))?;
+                .with_context(|| format!("failed to move {} to skilltree", name))?;
             fs_util::create_symlink(&dst, &src)
                 .with_context(|| format!("failed to create global symlink for {}", name))?;
-            println!("Moved: {} → skill-tree (symlink left in skills/)", name);
+            println!("Moved: {} → skilltree (symlink left in skills/)", name);
         }
     }
 

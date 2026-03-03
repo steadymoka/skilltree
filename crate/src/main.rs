@@ -10,7 +10,7 @@ use skill_tree::{init, linker, serve, tagger, tree, tui};
 
 #[derive(Parser)]
 #[command(
-    name = "skill-tree",
+    name = "skilltree",
     about = "Skill management tool for Claude Code & Codex"
 )]
 struct Cli {
@@ -20,7 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Initialize skill-tree (idempotent)
+    /// Initialize skilltree (idempotent)
     Init,
 
     /// Link skills to the current project by tags

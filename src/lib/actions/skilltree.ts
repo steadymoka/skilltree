@@ -5,7 +5,7 @@ import { promisify } from "util";
 import { revalidatePath } from "next/cache";
 
 const execFile = promisify(execFileCb);
-const BIN = "skill-tree";
+const BIN = "skilltree";
 
 export async function initializeSkillTree() {
   await execFile(BIN, ["init"]);

@@ -54,16 +54,16 @@ jobs:
         if: matrix.archive == 'tar.gz'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../skill-tree-${{ matrix.target }}.tar.gz skill-tree
+          tar czf ../../../skilltree-${{ matrix.target }}.tar.gz skilltree
           cd ../../..
       - name: Package (windows)
         if: matrix.archive == 'zip'
         shell: pwsh
-        run: Compress-Archive -Path target/${{ matrix.target }}/release/skill-tree.exe -DestinationPath skill-tree-${{ matrix.target }}.zip
+        run: Compress-Archive -Path target/${{ matrix.target }}/release/skilltree.exe -DestinationPath skilltree-${{ matrix.target }}.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: skill-tree-${{ matrix.target }}
-          path: crate/skill-tree-${{ matrix.target }}.${{ matrix.archive }}
+          name: skilltree-${{ matrix.target }}
+          path: crate/skilltree-${{ matrix.target }}.${{ matrix.archive }}
 
   release:
     name: Release
@@ -100,7 +100,7 @@ jobs:
             pkg.version = '${VERSION}';
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-          echo "Publishing skill-tree@${VERSION}"
+          echo "Publishing skilltree@${VERSION}"
       - name: Publish
         run: npm publish ./npm --access public
         env:

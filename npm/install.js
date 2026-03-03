@@ -8,8 +8,8 @@ const fs = require("fs");
 const https = require("https");
 const { execFileSync } = require("child_process");
 
-const REPO = "steadymoka/skill-tree";
-const NAME = "skill-tree";
+const REPO = "steadymoka/skilltree";
+const NAME = "skilltree";
 
 const PLATFORM_MAP = {
   "darwin-arm64": { target: "aarch64-apple-darwin", archive: "tar.gz" },
@@ -40,7 +40,7 @@ function getVersion() {
 function fetch(url) {
   return new Promise((resolve, reject) => {
     https
-      .get(url, { headers: { "User-Agent": "skill-tree-npm" } }, (res) => {
+      .get(url, { headers: { "User-Agent": "skilltree-npm" } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return fetch(res.headers.location).then(resolve, reject);
         }
