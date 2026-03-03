@@ -1,5 +1,5 @@
 # dependencies
-node_modules/
+web/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -9,25 +9,25 @@ node_modules/
 !.yarn/versions
 
 # next.js
-/.next/
-/out/
+web/.next/
+web/out/
 
 # production
-/build
+web/build
 /dist/
 
 # testing
 /coverage
 
 # typescript
-*.tsbuildinfo
-next-env.d.ts
+web/*.tsbuildinfo
+web/next-env.d.ts
 
 # env
 .env*
 
 # rust / cargo
-crate/target/
+target/
 
 # os
 .DS_Store

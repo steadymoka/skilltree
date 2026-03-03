@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use anyhow::{bail, Context, Result};
 
 fn standalone_dir(base: &Path) -> PathBuf {
-    base.join(".next").join("standalone")
+    base.join("web").join(".next").join("standalone")
 }
 
 /// Ensure `.next/static` and `public` are accessible from the standalone dir.
@@ -16,13 +16,13 @@ fn ensure_static_assets(root: &Path) {
     let standalone = standalone_dir(root);
 
     let static_link = standalone.join(".next").join("static");
-    let static_src = root.join(".next").join("static");
+    let static_src = root.join("web").join(".next").join("static");
     if !static_link.exists() && static_src.exists() {
         let _ = symlink(&static_src, &static_link);
     }
 
     let public_link = standalone.join("public");
-    let public_src = root.join("public");
+    let public_src = root.join("web").join("public");
     if !public_link.exists() && public_src.exists() {
         let _ = symlink(&public_src, &public_link);
     }
@@ -67,7 +67,7 @@ pub fn start_web(project_root: Option<PathBuf>) -> Result<()> {
         .with_context(|| {
             if !server_js.exists() {
                 format!(
-                    "Next.js standalone server not found at {}.\nRun 'pnpm build' first.",
+                    "Next.js standalone server not found at {}.\nRun 'cd web && pnpm build' first.",
                     server_js.display()
                 )
             } else {
@@ -130,5 +130,5 @@ fn infer_project_root() -> Result<PathBuf> {
         }
     }
 
-    bail!("cannot find project root with .next/standalone/. Pass --root or cd into the project.")
+    bail!("cannot find project root with web/.next/standalone/. Pass --root or cd into the project.")
 }

@@ -13,7 +13,7 @@ npm i -g skilltree
 Or build from source:
 
 ```bash
-cd crate && cargo build --release
+cargo build --release
 ```
 
 ## Usage
@@ -91,10 +91,10 @@ skilltree serve
 
 ```bash
 # Rust CLI
-cd crate && cargo run
+cargo run
 
 # Web dashboard
-pnpm install && pnpm dev
+cd web && pnpm install && pnpm dev
 ```
 
 ## License

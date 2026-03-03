@@ -33,9 +33,6 @@ jobs:
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
             archive: zip
-    defaults:
-      run:
-        working-directory: crate
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -43,7 +40,6 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: crate
           key: ${{ matrix.target }}
       - name: Install cross
         if: matrix.cross
@@ -63,7 +59,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: skilltree-${{ matrix.target }}
-          path: crate/skilltree-${{ matrix.target }}.${{ matrix.archive }}
+          path: skilltree-${{ matrix.target }}.${{ matrix.archive }}
 
   release:
     name: Release

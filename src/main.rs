@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
-use skill_tree::config::Paths;
-use skill_tree::fs_util::Tool;
-use skill_tree::{init, linker, serve, tagger, tree, tui};
+use skilltree::config::Paths;
+use skilltree::fs_util::Tool;
+use skilltree::{init, linker, serve, tagger, tree, tui};
 
 #[derive(Parser)]
 #[command(
