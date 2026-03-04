@@ -10,6 +10,7 @@ pub struct Paths {
     pub skill_tree_dir: PathBuf,
     pub skills_yaml: PathBuf,
     pub link_skills_sh: PathBuf,
+    pub skill_lock_json: PathBuf,
 }
 
 impl Paths {
@@ -17,11 +18,13 @@ impl Paths {
         let skill_tree = home.join(".skilltree");
         let skills_yaml = skill_tree.join("skills.yaml");
         let link_skills_sh = skill_tree.join("link-skills.sh");
+        let skill_lock_json = skill_tree.join(".skill-lock.json");
         Self {
             skills_dir: home.join(".claude").join("skills"),
             skill_tree_dir: skill_tree,
             skills_yaml,
             link_skills_sh,
+            skill_lock_json,
         }
     }
 

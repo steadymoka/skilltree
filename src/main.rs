@@ -6,7 +6,9 @@ use clap::{Parser, Subcommand};
 
 use skilltree::config::Paths;
 use skilltree::fs_util::Tool;
-use skilltree::{init, linker, serve, tagger, tree, tui};
+use skilltree::git::RealGitClient;
+use skilltree::http::UreqHttpClient;
+use skilltree::{adder, finder, init, linker, serve, tagger, tree, tui, updater};
 
 #[derive(Parser)]
 #[command(
@@ -74,6 +76,48 @@ enum Command {
     #[command(hide = true)]
     Tag { skill: String, tags: Vec<String> },
 
+    /// Add a skill from GitHub
+    Add {
+        /// GitHub source (owner/repo)
+        source: String,
+
+        /// Specific skill path within repo
+        #[arg(long)]
+        skill: Option<String>,
+
+        /// Custom local name
+        #[arg(long)]
+        name: Option<String>,
+
+        /// Tags to assign
+        #[arg(long, short)]
+        tag: Vec<String>,
+
+        /// Overwrite existing
+        #[arg(long)]
+        force: bool,
+
+        /// Git ref (branch/tag)
+        #[arg(long, default_value = "main")]
+        git_ref: String,
+    },
+
+    /// Search for skills on GitHub
+    Find {
+        /// Search query
+        query: String,
+
+        /// Max results
+        #[arg(long, short, default_value = "10")]
+        limit: usize,
+    },
+
+    /// Update installed skill(s) to latest
+    Update {
+        /// Skill name (omit for all)
+        skill: Option<String>,
+    },
+
     /// Print skill tree grouped by tags
     Tree,
 
@@ -107,6 +151,65 @@ fn main() -> Result<()> {
 fn dispatch(command: Command, paths: &Paths) -> Result<()> {
     match command {
         Command::Init => init::initialize(paths),
+
+        Command::Add {
+            source,
+            skill,
+            name,
+            tag,
+            force,
+            git_ref,
+        } => {
+            RealGitClient::ensure_git()?;
+            let opts = adder::AddOpts {
+                source,
+                skill,
+                name,
+                tags: tag,
+                force,
+                git_ref,
+            };
+            let git = RealGitClient;
+            let result = adder::add_skill(paths, &opts, &git)?;
+            println!("Added: {}", result.skill_name);
+            Ok(())
+        }
+
+        Command::Find { query, limit } => {
+            let http = UreqHttpClient;
+            let opts = finder::FindOpts { query, limit };
+            let results = finder::find_skills(&opts, &http)?;
+            if results.is_empty() {
+                println!("No skills found.");
+            } else {
+                for s in &results {
+                    println!("{} ({} stars) - {}", s.full_name, s.stars, s.description);
+                }
+            }
+            Ok(())
+        }
+
+        Command::Update { skill } => {
+            RealGitClient::ensure_git()?;
+            let git = RealGitClient;
+            if let Some(name) = skill {
+                match updater::update_skill(paths, &name, &git)? {
+                    Some(r) => print_update(&r),
+                    None => println!("'{}' is already up to date.", name),
+                }
+            } else {
+                let results = updater::update_all(paths, &git)?;
+                if results.is_empty() {
+                    println!("All skills are up to date.");
+                } else {
+                    for r in &results {
+                        print_update(r);
+                    }
+                    println!("{} skill(s) updated.", results.len());
+                }
+            }
+            Ok(())
+        }
 
         Command::Link { tags, path, tool } => {
             let project = resolve_project(path)?;
@@ -158,6 +261,16 @@ fn dispatch(command: Command, paths: &Paths) -> Result<()> {
 
         Command::Serve { .. } => unreachable!(),
     }
+}
+
+fn print_update(r: &updater::UpdateResult) {
+    let end = |s: &str| 7.min(s.len());
+    println!(
+        "Updated '{}': {} → {}",
+        r.skill_name,
+        &r.old_sha[..end(&r.old_sha)],
+        &r.new_sha[..end(&r.new_sha)],
+    );
 }
 
 fn resolve_project(path: Option<PathBuf>) -> Result<PathBuf> {

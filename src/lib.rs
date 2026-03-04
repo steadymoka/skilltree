@@ -1,10 +1,16 @@
+pub mod adder;
 pub mod config;
+pub mod finder;
 pub mod fs_util;
+pub mod git;
+pub mod http;
 pub mod init;
 pub mod linker;
+pub mod lock;
 pub mod scanner;
 pub mod serve;
 pub mod tagger;
 pub mod tree;
 pub mod tui;
+pub mod updater;
 pub mod yaml;
