@@ -62,3 +62,17 @@ pub fn basename(path: &str) -> &str {
 pub fn project_skills_dir(project_path: &Path, tool: Tool) -> std::path::PathBuf {
     project_path.join(tool.skills_subdir())
 }
+
+const PROJECT_MARKERS: &[&str] = &[
+    ".git",
+    "package.json",
+    "Cargo.toml",
+    "pyproject.toml",
+    "go.mod",
+    ".claude",
+    ".codex",
+];
+
+pub fn is_project_dir(path: &Path) -> bool {
+    PROJECT_MARKERS.iter().any(|m| path.join(m).exists())
+}

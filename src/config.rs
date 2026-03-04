@@ -33,3 +33,26 @@ impl Paths {
         Ok(Self::from_home(&home))
     }
 }
+
+/// Load project paths from ~/.claude.json.
+pub fn load_project_paths() -> Vec<String> {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return Vec::new(),
+    };
+    let claude_json = home.join(".claude.json");
+    let content = match std::fs::read_to_string(&claude_json) {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+    let value: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+    let Some(projects) = value.get("projects").and_then(|p| p.as_object()) else {
+        return Vec::new();
+    };
+    let mut paths: Vec<String> = projects.keys().map(|k| k.to_string()).collect();
+    paths.sort();
+    paths
+}

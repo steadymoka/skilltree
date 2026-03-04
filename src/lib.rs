@@ -1,5 +1,6 @@
 pub mod adder;
 pub mod config;
+pub mod doctor;
 pub mod finder;
 pub mod fs_util;
 pub mod git;

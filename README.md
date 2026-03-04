@@ -123,6 +123,8 @@ skilltree unlink --all                # Unlink all skills
 ```bash
 skilltree init                        # Initialize ~/.skilltree/
 skilltree tree                        # Print skill tree (alias: list)
+skilltree doctor                      # Check health & broken symlinks
+skilltree doctor --fix                # Auto-fix detected issues
 skilltree serve                       # Open web dashboard
 ```
 

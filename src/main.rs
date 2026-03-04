@@ -4,11 +4,13 @@ use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
-use skilltree::config::Paths;
-use skilltree::fs_util::Tool;
+use skilltree::config::{self, Paths};
+use skilltree::fs_util::{self, Tool};
 use skilltree::git::RealGitClient;
 use skilltree::http::UreqHttpClient;
-use skilltree::{adder, finder, info, init, linker, remover, serve, tagger, tree, tui, updater};
+use skilltree::{
+    adder, doctor, finder, info, init, linker, remover, serve, tagger, tree, tui, updater,
+};
 
 #[derive(Parser)]
 #[command(
@@ -122,6 +124,13 @@ enum Command {
     #[command(alias = "list")]
     Tree,
 
+    /// Check skilltree health and fix issues
+    Doctor {
+        /// Auto-fix detected issues
+        #[arg(long)]
+        fix: bool,
+    },
+
     /// Start the web UI (Next.js standalone server)
     Serve {
         /// Project root containing .next/standalone/
@@ -136,7 +145,7 @@ fn main() -> Result<()> {
     let Some(command) = cli.command else {
         let paths = Paths::default_paths()?;
         init::ensure_initialized(&paths)?;
-        let project_paths = load_project_paths();
+        let project_paths = config::load_project_paths();
         return tui::run(paths, project_paths);
     };
 
@@ -266,20 +275,25 @@ fn dispatch(command: Command, paths: &Paths) -> Result<()> {
         }
 
         Command::Remove { name } => {
-            let project_paths = load_project_paths();
+            let project_paths = config::load_project_paths();
             remover::remove_skill(paths, &name, &project_paths)?;
             println!("Removed: {}", name);
             Ok(())
         }
 
         Command::Info { name } => {
-            let project_paths = load_project_paths();
+            let project_paths = config::load_project_paths();
             info::print_info(paths, &name, &project_paths)
         }
 
         Command::Tree => {
-            let project_paths = load_project_paths();
+            let project_paths = config::load_project_paths();
             tree::print_tree(paths, &project_paths)
+        }
+
+        Command::Doctor { fix } => {
+            let project_paths = config::load_project_paths();
+            doctor::run(paths, fix, &project_paths)
         }
 
         Command::Serve { .. } => unreachable!(),
@@ -297,31 +311,23 @@ fn print_update(r: &updater::UpdateResult) {
 }
 
 fn resolve_project(path: Option<PathBuf>) -> Result<PathBuf> {
-    match path {
-        Some(p) => Ok(p),
-        None => env::current_dir().context("cannot determine current directory"),
-    }
-}
+    let project = match path {
+        Some(p) => p,
+        None => env::current_dir().context("cannot determine current directory")?,
+    };
 
-/// Load project paths from ~/.claude.json for TUI project list.
-fn load_project_paths() -> Vec<String> {
-    let home = match dirs::home_dir() {
-        Some(h) => h,
-        None => return Vec::new(),
-    };
-    let claude_json = home.join(".claude.json");
-    let content = match std::fs::read_to_string(&claude_json) {
-        Ok(c) => c,
-        Err(_) => return Vec::new(),
-    };
-    let value: serde_json::Value = match serde_json::from_str(&content) {
-        Ok(v) => v,
-        Err(_) => return Vec::new(),
-    };
-    let Some(projects) = value.get("projects").and_then(|p| p.as_object()) else {
-        return Vec::new();
-    };
-    let mut paths: Vec<String> = projects.keys().map(|k| k.to_string()).collect();
-    paths.sort();
-    paths
+    if !fs_util::is_project_dir(&project) {
+        eprint!(
+            "Warning: '{}' does not look like a project directory.\nContinue? [y/N]: ",
+            project.display()
+        );
+        std::io::Write::flush(&mut std::io::stderr())?;
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        if !input.trim().eq_ignore_ascii_case("y") {
+            anyhow::bail!("aborted");
+        }
+    }
+
+    Ok(project)
 }

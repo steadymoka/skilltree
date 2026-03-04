@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 const LOCK_VERSION: u32 = 1;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SkillLock {
     pub version: u32,
     pub skills: BTreeMap<String, SkillLockEntry>,
