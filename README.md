@@ -12,7 +12,7 @@
 
 <br>
 
-> Centrally manage reusable skills for **Claude Code** and **Codex**, then link them to any project with a single command — or interactively via TUI.
+> Install, manage, and link reusable skills for **Claude Code** and **Codex** — from GitHub or locally, via CLI or TUI.
 
 <br>
 
@@ -21,6 +21,8 @@
 ```bash
 npm i -g @steadymoka/skilltree   # install
 skilltree init                    # set up ~/.skilltree/
+skilltree add owner/repo          # install a skill from GitHub
+skilltree link <tags...>          # link skills to your project
 skilltree                         # launch TUI
 ```
 
@@ -95,15 +97,36 @@ Link skills to projects. Select a project on the left, then toggle skills or ent
 
 ## CLI Commands
 
+### Skill Management
+
 ```bash
-skilltree init                        # Initialize ~/.skilltree/
+skilltree add <owner/repo>            # Install a skill from GitHub
+skilltree add <owner/repo> --skill <path>  # Install a specific skill within a repo
+skilltree search <query>              # Search for skills on GitHub
+skilltree update [skill]              # Update skill(s) to latest
+skilltree remove <name>               # Remove an installed skill
+skilltree info <name>                 # Show skill details
+skilltree tag <skill> <tags...>       # Set tags for a skill
+```
+
+### Linking
+
+```bash
 skilltree link <tags...>              # Link skills by tags
-skilltree link-skill <name>           # Link a single skill
+skilltree link --skill <name>         # Link a single skill
 skilltree unlink <name>               # Unlink a skill
 skilltree unlink --all                # Unlink all skills
-skilltree tree                        # Print skill tree
+```
+
+### Other
+
+```bash
+skilltree init                        # Initialize ~/.skilltree/
+skilltree tree                        # Print skill tree (alias: list)
 skilltree serve                       # Open web dashboard
 ```
+
+### Common Flags
 
 | Flag | Description |
 |------|-------------|
@@ -117,7 +140,8 @@ skilltree serve                       # Open web dashboard
 ```
 ~/.skilltree/               Central skill repository
 ├── skills.yaml             Skill → tag mapping
-├── auth-middleware/         Skill directory
+├── .skill-lock.json        Source & version metadata
+├── auth-middleware/         Skill directory (local or from GitHub)
 │   └── SKILL.md
 ├── db-migrations/
 └── ...
@@ -127,7 +151,7 @@ skilltree serve                       # Open web dashboard
 └── error-handling → ~/.skilltree/error-handling
 ```
 
-Skills live in one place (`~/.skilltree/`). Projects reference them via **symlinks** — no duplication, always up to date. Tags let you group related skills and link them in bulk.
+Skills live in one place (`~/.skilltree/`). Projects reference them via **symlinks** — no duplication, always up to date. Install skills from GitHub with `skilltree add`, or create your own locally. Tags let you group related skills and link them in bulk.
 
 <br>
 
