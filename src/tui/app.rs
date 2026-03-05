@@ -66,6 +66,7 @@ pub struct App {
 
     pub(super) screen: Screen,
     pub(super) panel: Panel,
+    pub(super) selected_tool: Tool,
     pub(super) status_msg: String,
     pub(super) should_quit: bool,
 
@@ -74,6 +75,7 @@ pub struct App {
 
     pub(super) text_input: Option<TextInputState>,
     pub(super) tree_rows: Vec<TreeRow>,
+    pub(super) tag_skills: BTreeMap<String, Vec<String>>,
 }
 
 impl App {
@@ -89,6 +91,7 @@ impl App {
 
             screen: Screen::Skills,
             panel: Panel::Left,
+            selected_tool: Tool::Claude,
             status_msg: String::new(),
             should_quit: false,
 
@@ -108,6 +111,7 @@ impl App {
 
             text_input: None,
             tree_rows: Vec::new(),
+            tag_skills: BTreeMap::new(),
         };
         app.reload()?;
         Ok(app)
@@ -131,18 +135,24 @@ impl App {
     }
 
     pub(super) fn reload_project_links(&mut self, project: &str) {
-        let linked = scanner::scan_linked_skills(std::path::Path::new(project), Tool::Claude);
+        let linked = scanner::scan_linked_skills(std::path::Path::new(project), self.selected_tool);
         self.project_links
             .insert(project.to_string(), linked.into_iter().collect());
     }
 
     fn reload_all_project_links(&mut self) {
         self.project_links.clear();
-        for p in &self.project_paths {
-            let linked = scanner::scan_linked_skills(std::path::Path::new(p), Tool::Claude);
-            self.project_links
-                .insert(p.clone(), linked.into_iter().collect());
+        let paths = self.project_paths.clone();
+        for p in &paths {
+            self.reload_project_links(p);
         }
+    }
+
+    pub(super) fn toggle_tool(&mut self) {
+        self.selected_tool = self.selected_tool.next();
+        self.status_msg = format!("Switched to {}", self.selected_tool);
+        self.reload_all_project_links();
+        self.sync_list_states();
     }
 
     pub(super) fn rebuild_tree(&mut self) {
@@ -197,6 +207,15 @@ impl App {
         }
 
         self.tree_rows = rows;
+        self.tag_skills = by_tag
+            .into_iter()
+            .map(|(tag, skills)| {
+                (
+                    tag.to_string(),
+                    skills.into_iter().map(|s| s.to_string()).collect(),
+                )
+            })
+            .collect();
     }
 
     pub(super) fn skill_count(&self) -> usize {
@@ -223,14 +242,11 @@ impl App {
         self.project_links.get(project).map_or(0, |s| s.len())
     }
 
-    pub(super) fn skills_for_tag(&self, tag: &str) -> Vec<String> {
-        self.tag_map
-            .iter()
-            .filter(|(name, tags)| {
-                tags.contains(&tag.to_string()) && self.skill_dir_set.contains(name.as_str())
-            })
-            .map(|(name, _)| name.clone())
-            .collect()
+    pub(super) fn skills_for_tag(&self, tag: &str) -> &[String] {
+        self.tag_skills
+            .get(tag)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
     }
 
     pub(super) fn clamp_all_selections(&mut self) {

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::fs_util::Tool;
 use crate::linker;
 use crate::tagger;
 
@@ -127,6 +126,10 @@ impl App {
     // ── Screen 2: Projects ──
 
     fn handle_projects_screen_key(&mut self, code: KeyCode) -> Result<()> {
+        if code == KeyCode::Char('t') {
+            self.toggle_tool();
+            return Ok(());
+        }
         match self.panel {
             Panel::Left => self.handle_project_list_key(code),
             Panel::Right => self.handle_tree_key(code),
@@ -196,8 +199,8 @@ impl App {
                 let all_linked = skills.iter().all(|s| self.is_skill_linked_to_selected(s));
 
                 if all_linked {
-                    for skill in &skills {
-                        linker::unlink_skill(project_path, skill, Tool::Claude)?;
+                    for skill in skills {
+                        linker::unlink_skill(project_path, skill, self.selected_tool)?;
                     }
                     self.status_msg = format!("Unlinked [{}] from {}", tag, project_name);
                 } else {
@@ -205,7 +208,7 @@ impl App {
                         &self.paths,
                         project_path,
                         std::slice::from_ref(&tag),
-                        Tool::Claude,
+                        self.selected_tool,
                     )?;
                     self.status_msg =
                         format!("Linked [{}] to {} ({} skills)", tag, project_name, count);
@@ -214,10 +217,10 @@ impl App {
             }
             TreeRow::Skill { skill } | TreeRow::UntaggedSkill { skill } => {
                 if self.is_skill_linked_to_selected(&skill) {
-                    linker::unlink_skill(project_path, &skill, Tool::Claude)?;
+                    linker::unlink_skill(project_path, &skill, self.selected_tool)?;
                     self.status_msg = format!("Unlinked {} from {}", skill, project_name);
                 } else {
-                    linker::link_skill(&self.paths, project_path, &skill, Tool::Claude)?;
+                    linker::link_skill(&self.paths, project_path, &skill, self.selected_tool)?;
                     self.status_msg = format!("Linked {} to {}", skill, project_name);
                 }
                 self.reload_project_links(&project);

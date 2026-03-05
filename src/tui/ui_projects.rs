@@ -128,7 +128,7 @@ fn render_project_list(frame: &mut Frame, area: Rect, app: &mut App) {
     if app.project_paths.is_empty() {
         let block = panel_block(" Projects ", focused);
         let msg = Paragraph::new(Line::from(vec![Span::styled(
-            "  No projects found in ~/.claude.json",
+            "  No projects found",
             Style::new().fg(Color::DarkGray),
         )]))
         .block(block);

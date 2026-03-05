@@ -44,6 +44,8 @@ fn render_tab_bar(frame: &mut Frame, area: Rect, app: &App) {
         inactive
     };
 
+    let projects_label = format!(" 2:Projects [{}] ", app.selected_tool);
+
     let line = Line::from(vec![
         Span::styled(" Skill Tree ", Style::new().fg(Color::White).bold()),
         Span::styled(
@@ -57,7 +59,7 @@ fn render_tab_bar(frame: &mut Frame, area: Rect, app: &App) {
         Span::raw("  "),
         Span::styled(" 1:Skills ", skills_style),
         Span::raw(" "),
-        Span::styled(" 2:Projects ", projects_style),
+        Span::styled(projects_label, projects_style),
     ]);
 
     frame.render_widget(Paragraph::new(line), area);
@@ -69,7 +71,7 @@ fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
     } else {
         match app.screen {
             Screen::Skills => " 1/2:screen  Tab:focus  \u{2191}\u{2193}:select  Space:toggle  a:new tag  q:quit",
-            Screen::Projects => " 1/2:screen  Tab:focus  \u{2191}\u{2193}:select  Space:link/unlink  Enter:fold  q:quit",
+            Screen::Projects => " 1/2:screen  Tab:focus  \u{2191}\u{2193}:select  Space:link/unlink  Enter:fold  t:tool  q:quit",
         }
     };
 
