@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::*;
 
 use super::app::{App, Panel, TreeRow};
-use super::ui::panel_block;
+use super::ui::PanelTheme;
 
 pub fn render(frame: &mut Frame, area: Rect, app: &mut App) {
     let chunks =
@@ -14,14 +14,14 @@ pub fn render(frame: &mut Frame, area: Rect, app: &mut App) {
 
 fn render_tree_view(frame: &mut Frame, area: Rect, app: &mut App) {
     let focused = app.panel == Panel::Right;
+    let theme = PanelTheme::new(focused);
 
     if app.tree_rows.is_empty() {
-        let block = panel_block(" Skills by Tag ", focused);
         let msg = Paragraph::new(Line::from(vec![Span::styled(
             "  No skills found.",
             Style::new().fg(Color::DarkGray),
         )]))
-        .block(block);
+        .block(theme.block(" Skills by Tag "));
         frame.render_widget(msg, area);
         return;
     }
@@ -56,9 +56,9 @@ fn render_tree_view(frame: &mut Frame, area: Rect, app: &mut App) {
                 };
 
                 ListItem::new(Line::from(vec![
-                    Span::styled(format!(" {} ", arrow), Style::new().fg(Color::White)),
+                    Span::styled(format!(" {} ", arrow), theme.text_style),
                     Span::styled(format!("{} ", check), check_style),
-                    Span::styled(tag.as_str(), Style::new().fg(Color::White).bold()),
+                    Span::styled(tag.as_str(), theme.text_style.bold()),
                     Span::styled(
                         format!("  {}", skill_count),
                         Style::new().fg(Color::DarkGray),
@@ -77,7 +77,7 @@ fn render_tree_view(frame: &mut Frame, area: Rect, app: &mut App) {
                 ListItem::new(Line::from(vec![
                     Span::styled("     ", Style::new()),
                     Span::styled(format!("{} ", check), check_style),
-                    Span::styled(skill.as_str(), Style::new()),
+                    Span::styled(skill.as_str(), theme.text_style),
                 ]))
             }
             TreeRow::UntaggedHeader { skill_count } => {
@@ -111,27 +111,22 @@ fn render_tree_view(frame: &mut Frame, area: Rect, app: &mut App) {
         .collect();
 
     let list = List::new(items)
-        .block(panel_block(" Skills by Tag ", focused))
-        .highlight_style(
-            Style::new()
-                .bg(Color::Blue)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
-        );
+        .block(theme.block(" Skills by Tag "))
+        .highlight_style(theme.highlight_style);
 
     frame.render_stateful_widget(list, area, &mut app.projects_state.tree_list_state);
 }
 
 fn render_project_list(frame: &mut Frame, area: Rect, app: &mut App) {
     let focused = app.panel == Panel::Left;
+    let theme = PanelTheme::new(focused);
 
     if app.project_paths.is_empty() {
-        let block = panel_block(" Projects ", focused);
         let msg = Paragraph::new(Line::from(vec![Span::styled(
             "  No projects found",
             Style::new().fg(Color::DarkGray),
         )]))
-        .block(block);
+        .block(theme.block(" Projects "));
         frame.render_widget(msg, area);
         return;
     }
@@ -150,21 +145,16 @@ fn render_project_list(frame: &mut Frame, area: Rect, app: &mut App) {
             };
 
             ListItem::new(Line::from(vec![
-                Span::styled(format!("  {}", name), Style::new()),
+                Span::styled(format!("  {}", name), theme.text_style),
                 Span::styled(format!("  {} linked", count), count_style),
             ]))
         })
         .collect();
 
     let list = List::new(items)
-        .block(panel_block(" Projects ", focused))
-        .highlight_style(
-            Style::new()
-                .bg(Color::Blue)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(" \u{25b8} ");
+        .block(theme.block(" Projects "))
+        .highlight_style(theme.highlight_style)
+        .highlight_symbol(theme.highlight_symbol);
 
     frame.render_stateful_widget(list, area, &mut app.projects_state.project_list_state);
 }

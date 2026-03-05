@@ -105,14 +105,72 @@ fn render_text_input_modal(frame: &mut Frame, area: Rect, app: &App) {
     frame.render_widget(Paragraph::new(display), inner);
 }
 
-pub(super) fn panel_block(title: &str, focused: bool) -> Block<'_> {
-    let style = if focused {
-        Style::new().fg(Color::Blue)
-    } else {
-        Style::new().fg(Color::DarkGray)
-    };
-    Block::bordered()
-        .title(title)
-        .border_style(style)
-        .border_type(BorderType::Rounded)
+const FOCUS_BORDER: Color = Color::Blue;
+const FOCUS_HIGHLIGHT_BG: Color = Color::Blue;
+const UNFOCUS_COLOR: Color = Color::DarkGray;
+
+pub(super) struct PanelTheme {
+    pub highlight_style: Style,
+    pub highlight_symbol: &'static str,
+    pub text_style: Style,
+    border_style: Style,
+}
+
+impl PanelTheme {
+    pub fn new(focused: bool) -> Self {
+        if focused {
+            Self {
+                highlight_style: Style::new()
+                    .bg(FOCUS_HIGHLIGHT_BG)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+                highlight_symbol: " \u{25b8} ",
+                text_style: Style::new(),
+                border_style: Style::new().fg(FOCUS_BORDER),
+            }
+        } else {
+            Self {
+                highlight_style: Style::new().bg(UNFOCUS_COLOR).fg(Color::White),
+                highlight_symbol: "   ",
+                text_style: Style::new().fg(UNFOCUS_COLOR),
+                border_style: Style::new().fg(UNFOCUS_COLOR),
+            }
+        }
+    }
+
+    pub fn block<'a>(&self, title: &'a str) -> Block<'a> {
+        Block::bordered()
+            .title(title)
+            .border_style(self.border_style)
+            .border_type(BorderType::Rounded)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn focused_theme_uses_accent_colors() {
+        let theme = PanelTheme::new(true);
+        assert_eq!(theme.highlight_symbol, " \u{25b8} ");
+        assert_eq!(theme.highlight_style.bg, Some(FOCUS_HIGHLIGHT_BG));
+        assert_eq!(theme.border_style.fg, Some(FOCUS_BORDER));
+        assert_eq!(theme.text_style, Style::new());
+    }
+
+    #[test]
+    fn unfocused_theme_is_uniformly_dimmed() {
+        let theme = PanelTheme::new(false);
+        assert_eq!(theme.highlight_symbol, "   ");
+        assert_eq!(theme.highlight_style.bg, Some(UNFOCUS_COLOR));
+        assert_eq!(theme.text_style.fg, Some(UNFOCUS_COLOR));
+        assert_eq!(theme.border_style.fg, Some(UNFOCUS_COLOR));
+    }
+
+    #[test]
+    fn block_creates_rounded_bordered_block() {
+        let theme = PanelTheme::new(true);
+        let _block = theme.block(" Test ");
+    }
 }

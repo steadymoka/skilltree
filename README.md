@@ -43,31 +43,31 @@ cargo build --release
 
 Run `skilltree` with no arguments to launch the interactive terminal UI.
 
-Switch between two screens with `1` and `2`.
+Switch between three screens with `1`, `2`, and `3`. The focused panel is highlighted while the other panel dims automatically.
 
 ### Screen 1 — Skills & Tags
 
 Organize your skills with tags. Select a skill on the left, toggle tags on the right.
 
 ```
- Skill Tree   12 skills  5 tags     1:Skills  2:Projects
+ Skill Tree   12 skills  5 tags    1:Skills  2:Claude  3:Codex
 ╭─ Skills ─────────────────────╮╭─ Tags ───────────────────────╮
-│ ▸ auth-middleware  [api,sec] ││ [✓] api                      │
-│   db-migrations    [db]      ││ [ ] db                       │
-│   error-handling   [api]     ││ [ ] frontend                 │
-│   graphql-setup              ││ [✓] sec                      │
-│   react-patterns   [frontend]││ [ ] testing                  │
+│ ▸ auth-middleware  [api,sec] ││   [✓] api                    │
+│   db-migrations    [db]      ││   [ ] db                     │
+│   error-handling   [api]     ││   [ ] frontend               │
+│   graphql-setup              ││   [✓] sec                    │
+│   react-patterns   [frontend]││   [ ] testing                │
 │   test-helpers     [testing] ││                              │
 ╰──────────────────────────────╯╰──────────────────────────────╯
- Tab:focus  ↑↓:select  Space:toggle  a:new tag  q:quit
+ 1/2/3:screen  ←→:focus  ↑↓:select  Space:toggle  a:new tag  q:quit
 ```
 
-### Screen 2 — Projects
+### Screen 2/3 — Claude / Codex Projects
 
-Link skills to projects. Select a project on the left, then toggle skills or entire tag groups on the right.
+Link skills to projects per agent. Select a project on the left, then toggle skills or entire tag groups on the right.
 
 ```
- Skill Tree   12 skills  5 tags     1:Skills  2:Projects
+ Skill Tree   12 skills  5 tags    1:Skills  2:Claude  3:Codex
 ╭─ Projects ───────────────────╮╭─ Skills by Tag ──────────────╮
 │ ▸ my-api         3 linked    ││ ▾ [✓] api                 2  │
 │   web-app        1 linked    ││     [✓] auth-middleware       │
@@ -78,15 +78,15 @@ Link skills to projects. Select a project on the left, then toggle skills or ent
 │                               ││ ── no tag ──                 │
 │                               ││     [ ] graphql-setup         │
 ╰──────────────────────────────╯╰──────────────────────────────╯
- Tab:focus  ↑↓:select  Space:link/unlink  Enter:fold  q:quit
+ 1/2/3:screen  ←→:focus  ↑↓:select  Space:link/unlink  Enter:fold  q:quit
 ```
 
 ### Keybindings
 
 | Key | Action |
 |:---:|--------|
-| `1` `2` | Switch screen |
-| `Tab` | Switch panel |
+| `1` `2` `3` | Switch screen |
+| `←` `→` | Switch panel focus |
 | `↑` `↓` `j` `k` | Navigate |
 | `Space` | Toggle tag / link |
 | `Enter` | Fold/unfold tag group |
