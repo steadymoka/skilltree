@@ -5,7 +5,6 @@
   </p>
   <p align="center">
     <a href="https://www.npmjs.com/package/@steadymoka/skilltree"><img alt="npm" src="https://img.shields.io/npm/v/@steadymoka/skilltree?color=blue&label=npm"></a>
-    <a href="https://crates.io/crates/skilltree"><img alt="crates.io" src="https://img.shields.io/crates/v/skilltree?color=orange"></a>
     <a href="https://github.com/steadymoka/skilltree/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/steadymoka/skilltree"></a>
   </p>
 </p>
