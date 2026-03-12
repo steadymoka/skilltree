@@ -213,19 +213,9 @@ pub fn github_url(owner: &str, repo: &str) -> String {
 }
 
 fn make_temp_dir() -> Result<PathBuf> {
-    let id = format!(
-        "skilltree-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos()
-    );
-    let dir = std::env::temp_dir().join(id);
-    if dir.exists() {
-        fs::remove_dir_all(&dir)?;
-    }
-    fs::create_dir_all(&dir)?;
+    let dir = tempfile::tempdir()
+        .context("failed to create temporary directory")?
+        .into_path();
     Ok(dir)
 }
 
