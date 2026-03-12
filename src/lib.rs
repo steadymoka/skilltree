@@ -9,6 +9,7 @@ pub mod info;
 pub mod init;
 pub mod linker;
 pub mod lock;
+pub mod refs;
 pub mod remover;
 pub mod scanner;
 pub mod serve;

@@ -200,6 +200,17 @@ pub fn run(paths: &Paths, fix: bool, project_paths: &[String]) -> Result<()> {
         );
     }
 
+    // 6. Broken internal references in SKILL.md
+    let broken_refs = crate::refs::validate_all_refs(&paths.skill_tree_dir)?;
+    if broken_refs.is_empty() {
+        println!("  \u{2713} All SKILL.md internal references are valid");
+    } else {
+        for b in &broken_refs {
+            println!("  ! {}: '{}' not found", b.skill_name, b.referenced_path);
+            issues += 1;
+        }
+    }
+
     finish(issues)
 }
 

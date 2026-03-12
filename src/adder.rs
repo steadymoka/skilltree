@@ -58,6 +58,14 @@ pub fn add_skill(paths: &Paths, opts: &AddOpts, git: &dyn GitClient) -> Result<A
         let source_dir = discover_skill_dir(&tmp, opts.skill.as_deref())?;
         copy_dir_recursive(&source_dir, &dest)?;
 
+        let broken = crate::refs::validate_skill_refs(&dest, &skill_name)?;
+        if !broken.is_empty() {
+            eprintln!("warning: {} broken reference(s) in SKILL.md:", broken.len());
+            for b in &broken {
+                eprintln!("  - {} (not found)", b.referenced_path);
+            }
+        }
+
         Ok((PathBuf::from(skill_path), sha))
     })();
 
