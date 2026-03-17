@@ -28,6 +28,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     if app.text_input.is_some() {
         render_text_input_modal(frame, area, app);
     }
+    if app.unlink_modal.is_some() {
+        render_unlink_modal(frame, area, app);
+    }
+    if app.delete_modal.is_some() {
+        render_delete_modal(frame, area, app);
+    }
 }
 
 fn render_tab_bar(frame: &mut Frame, area: Rect, app: &App) {
@@ -57,12 +63,16 @@ fn render_tab_bar(frame: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_status_bar(frame: &mut Frame, area: Rect, app: &App) {
-    let help = if app.text_input.is_some() {
+    let help = if app.delete_modal.is_some() {
+        " Enter:delete  Esc:cancel"
+    } else if app.unlink_modal.is_some() {
+        " Space:toggle  Enter:apply  Esc:cancel"
+    } else if app.text_input.is_some() {
         " Enter:save  Esc:cancel"
     } else if app.screen.is_projects() {
         " 1/2/3:screen  \u{2190}\u{2192}:focus  \u{2191}\u{2193}:select  Space:link/unlink  Enter:fold  q:quit"
     } else {
-        " 1/2/3:screen  \u{2190}\u{2192}:focus  \u{2191}\u{2193}:select  Space:toggle  a:new tag  q:quit"
+        " 1/2/3:screen  \u{2190}\u{2192}:focus  \u{2191}\u{2193}:select  Space:toggle  a:new tag  d:delete  Esc:quit"
     };
 
     let line = if app.status_msg.is_empty() {
@@ -103,6 +113,117 @@ fn render_text_input_modal(frame: &mut Frame, area: Rect, app: &App) {
     ]);
 
     frame.render_widget(Paragraph::new(display), inner);
+}
+
+fn render_delete_modal(frame: &mut Frame, area: Rect, app: &App) {
+    let state = app.delete_modal.as_ref().unwrap();
+
+    let width = 36u16.min(area.width.saturating_sub(4));
+    let height = 5u16;
+    let x = (area.width.saturating_sub(width)) / 2;
+    let y = (area.height.saturating_sub(height)) / 2;
+    let modal_area = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, modal_area);
+
+    let block = Block::bordered()
+        .title(" Delete skill? ")
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(Color::Red));
+
+    let inner = block.inner(modal_area);
+    frame.render_widget(block, modal_area);
+
+    let lines = vec![
+        Line::from(Span::styled(
+            format!("  \"{}\"", state.skill),
+            Style::new().fg(Color::Red).bold(),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+            " Enter:delete  Esc:cancel",
+            Style::new().fg(Color::DarkGray),
+        )),
+    ];
+
+    frame.render_widget(Paragraph::new(lines), inner);
+}
+
+fn render_unlink_modal(frame: &mut Frame, area: Rect, app: &App) {
+    let state = app.unlink_modal.as_ref().unwrap();
+
+    let title = format!(" Unlink {} from {} ", state.skill, state.project_name);
+    let width = (title.len() as u16 + 4)
+        .max(34)
+        .min(area.width.saturating_sub(4));
+    let height = 7u16;
+    let x = (area.width.saturating_sub(width)) / 2;
+    let y = (area.height.saturating_sub(height)) / 2;
+    let modal_area = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, modal_area);
+
+    let block = Block::bordered()
+        .title(title)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(Color::Yellow));
+
+    let inner = block.inner(modal_area);
+    frame.render_widget(block, modal_area);
+
+    let cursor_marker = |idx: usize| {
+        if state.cursor == idx {
+            "\u{25b8} "
+        } else {
+            "  "
+        }
+    };
+
+    let claude_check = if state.claude_checked {
+        "[\u{2713}]"
+    } else {
+        "[ ]"
+    };
+    let codex_check = if state.codex_checked {
+        "[\u{2713}]"
+    } else {
+        "[ ]"
+    };
+
+    let claude_style = if state.claude_linked {
+        Style::new()
+    } else {
+        Style::new().fg(Color::DarkGray)
+    };
+    let codex_style = if state.codex_linked {
+        Style::new()
+    } else {
+        Style::new().fg(Color::DarkGray)
+    };
+
+    let lines = vec![
+        Line::from(vec![
+            Span::styled(
+                format!(" {}", cursor_marker(0)),
+                Style::new().fg(Color::Yellow),
+            ),
+            Span::styled(format!("{} Claude", claude_check), claude_style),
+        ]),
+        Line::from(vec![
+            Span::styled(
+                format!(" {}", cursor_marker(1)),
+                Style::new().fg(Color::Yellow),
+            ),
+            Span::styled(format!("{} Codex", codex_check), codex_style),
+        ]),
+        Line::from(""),
+        Line::from(Span::styled(
+            " Space:toggle  Enter:apply  Esc:cancel",
+            Style::new().fg(Color::DarkGray),
+        )),
+    ];
+
+    frame.render_widget(Paragraph::new(lines), inner);
 }
 
 const FOCUS_BORDER: Color = Color::Blue;

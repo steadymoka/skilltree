@@ -5,11 +5,16 @@ use super::app::{App, Panel};
 use super::ui::PanelTheme;
 
 pub fn render(frame: &mut Frame, area: Rect, app: &mut App) {
-    let chunks =
-        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]).split(area);
+    let chunks = Layout::horizontal([
+        Constraint::Percentage(43),
+        Constraint::Percentage(28),
+        Constraint::Percentage(29),
+    ])
+    .split(area);
 
     render_skill_list(frame, chunks[0], app);
     render_tag_checkboxes(frame, chunks[1], app);
+    render_skill_projects(frame, chunks[2], app);
 }
 
 fn render_skill_list(frame: &mut Frame, area: Rect, app: &mut App) {
@@ -27,9 +32,17 @@ fn render_skill_list(frame: &mut Frame, area: Rect, app: &mut App) {
                 format!("  [{}]", tags.join(", "))
             };
 
+            let count = app.skill_linked_project_count(skill);
+            let count_span = if count > 0 {
+                format!("  ({})", count)
+            } else {
+                String::new()
+            };
+
             ListItem::new(Line::from(vec![
                 Span::styled(format!("  {}", skill), theme.text_style),
                 Span::styled(tag_str, Style::new().fg(Color::DarkGray)),
+                Span::styled(count_span, Style::new().fg(Color::Cyan)),
             ]))
         })
         .collect();
@@ -43,7 +56,7 @@ fn render_skill_list(frame: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn render_tag_checkboxes(frame: &mut Frame, area: Rect, app: &mut App) {
-    let focused = app.panel == Panel::Right;
+    let focused = app.panel == Panel::Middle;
     let theme = PanelTheme::new(focused);
 
     if app.all_tags.is_empty() {
@@ -87,4 +100,62 @@ fn render_tag_checkboxes(frame: &mut Frame, area: Rect, app: &mut App) {
         .highlight_symbol(theme.highlight_symbol);
 
     frame.render_stateful_widget(list, area, &mut app.skills_state.tag_list_state);
+}
+
+fn render_skill_projects(frame: &mut Frame, area: Rect, app: &mut App) {
+    let focused = app.panel == Panel::Right;
+    let theme = PanelTheme::new(focused);
+
+    let entries = app.selected_skill_project_entries();
+
+    if entries.is_empty() {
+        let msg = Paragraph::new(Line::from(vec![Span::styled(
+            "  No projects linked",
+            Style::new().fg(Color::DarkGray),
+        )]))
+        .block(theme.block(" Projects "));
+        frame.render_widget(msg, area);
+        return;
+    }
+
+    let items: Vec<ListItem> = entries
+        .iter()
+        .map(|entry| {
+            let mut spans = vec![Span::styled(
+                format!("  {}", entry.project_name),
+                theme.text_style,
+            )];
+
+            let tools: Vec<Span> = [
+                entry
+                    .has_claude
+                    .then(|| Span::styled("C", Style::new().fg(Color::Cyan))),
+                entry
+                    .has_codex
+                    .then(|| Span::styled("X", Style::new().fg(Color::Yellow))),
+            ]
+            .into_iter()
+            .flatten()
+            .collect();
+
+            if !tools.is_empty() {
+                spans.push(Span::styled("  ", Style::new()));
+                for (i, tool_span) in tools.into_iter().enumerate() {
+                    if i > 0 {
+                        spans.push(Span::styled("\u{00b7}", Style::new().fg(Color::DarkGray)));
+                    }
+                    spans.push(tool_span);
+                }
+            }
+
+            ListItem::new(Line::from(spans))
+        })
+        .collect();
+
+    let list = List::new(items)
+        .block(theme.block(" Projects "))
+        .highlight_style(theme.highlight_style)
+        .highlight_symbol(theme.highlight_symbol);
+
+    frame.render_stateful_widget(list, area, &mut app.skills_state.project_link_list_state);
 }

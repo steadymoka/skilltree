@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::io;
+use std::path::Path;
 
 use anyhow::Result;
 use crossterm::event::{self, Event};
@@ -39,6 +40,7 @@ impl Screen {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Panel {
     Left,
+    Middle,
     Right,
 }
 
@@ -50,8 +52,40 @@ pub(super) struct TextInputState {
 pub(super) struct SkillsScreenState {
     pub selected_skill: usize,
     pub selected_tag: usize,
+    pub selected_project_link: usize,
     pub skill_list_state: ListState,
     pub tag_list_state: ListState,
+    pub project_link_list_state: ListState,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct SkillProjectLink {
+    pub project_path: String,
+    pub project_name: String,
+    pub tool: Tool,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct SkillProjectEntry {
+    pub project_path: String,
+    pub project_name: String,
+    pub has_claude: bool,
+    pub has_codex: bool,
+}
+
+pub(super) struct UnlinkModalState {
+    pub skill: String,
+    pub project_path: String,
+    pub project_name: String,
+    pub claude_linked: bool,
+    pub codex_linked: bool,
+    pub claude_checked: bool,
+    pub codex_checked: bool,
+    pub cursor: usize,
+}
+
+pub(super) struct DeleteModalState {
+    pub skill: String,
 }
 
 pub(super) struct ProjectsScreenState {
@@ -90,17 +124,22 @@ pub struct App {
     pub(super) text_input: Option<TextInputState>,
     pub(super) tree_rows: Vec<TreeRow>,
     pub(super) tag_skills: BTreeMap<String, Vec<String>>,
+    pub(super) skill_project_links: BTreeMap<String, Vec<SkillProjectLink>>,
+    pub(super) unlink_modal: Option<UnlinkModalState>,
+    pub(super) delete_modal: Option<DeleteModalState>,
 }
 
 impl App {
     pub fn new(paths: Paths, project_paths: Vec<String>) -> Result<Self> {
+        let mut all_paths = vec![paths.home_dir.to_string_lossy().to_string()];
+        all_paths.extend(project_paths);
         let mut app = App {
             paths,
             tag_map: BTreeMap::new(),
             all_tags: Vec::new(),
             skill_dirs: Vec::new(),
             skill_dir_set: HashSet::new(),
-            project_paths,
+            project_paths: all_paths,
             project_links: BTreeMap::new(),
 
             screen: Screen::Skills,
@@ -111,8 +150,10 @@ impl App {
             skills_state: SkillsScreenState {
                 selected_skill: 0,
                 selected_tag: 0,
+                selected_project_link: 0,
                 skill_list_state: ListState::default(),
                 tag_list_state: ListState::default(),
+                project_link_list_state: ListState::default(),
             },
             projects_state: ProjectsScreenState {
                 selected_project: 0,
@@ -125,6 +166,9 @@ impl App {
             text_input: None,
             tree_rows: Vec::new(),
             tag_skills: BTreeMap::new(),
+            skill_project_links: BTreeMap::new(),
+            unlink_modal: None,
+            delete_modal: None,
         };
         app.reload()?;
         Ok(app)
@@ -141,6 +185,7 @@ impl App {
         }
         self.all_tags = tags.into_iter().collect();
 
+        self.reload_all_project_links_all_tools();
         if self.screen.is_projects() {
             self.reload_all_project_links();
         }
@@ -226,6 +271,23 @@ impl App {
             .collect();
     }
 
+    pub(super) fn reload_all_project_links_all_tools(&mut self) {
+        let mut map: BTreeMap<String, Vec<SkillProjectLink>> = BTreeMap::new();
+        for p in &self.project_paths.clone() {
+            let name = self.display_project_name(p);
+            for tool in [Tool::Claude, Tool::Codex] {
+                for skill in scanner::scan_linked_skills(Path::new(p), tool) {
+                    map.entry(skill).or_default().push(SkillProjectLink {
+                        project_path: p.clone(),
+                        project_name: name.clone(),
+                        tool,
+                    });
+                }
+            }
+        }
+        self.skill_project_links = map;
+    }
+
     pub(super) fn skill_count(&self) -> usize {
         self.skill_dirs.len()
     }
@@ -257,6 +319,58 @@ impl App {
             .unwrap_or(&[])
     }
 
+    pub(super) fn selected_skill_project_entries(&self) -> Vec<SkillProjectEntry> {
+        let skill = match self.skill_dirs.get(self.skills_state.selected_skill) {
+            Some(s) => s,
+            None => return Vec::new(),
+        };
+        let links = match self.skill_project_links.get(skill) {
+            Some(l) => l,
+            None => return Vec::new(),
+        };
+        let mut by_project: BTreeMap<&str, (String, bool, bool)> = BTreeMap::new();
+        for link in links {
+            let entry = by_project
+                .entry(&link.project_name)
+                .or_insert_with(|| (link.project_path.clone(), false, false));
+            match link.tool {
+                Tool::Claude => entry.1 = true,
+                Tool::Codex => entry.2 = true,
+                _ => {}
+            }
+        }
+        by_project
+            .into_values()
+            .map(|(path, claude, codex)| SkillProjectEntry {
+                project_name: self.display_project_name(&path),
+                project_path: path,
+                has_claude: claude,
+                has_codex: codex,
+            })
+            .collect()
+    }
+
+    pub(super) fn skill_linked_project_count(&self, skill: &str) -> usize {
+        self.skill_project_links
+            .get(skill)
+            .map(|links| {
+                let mut projects = HashSet::new();
+                for l in links {
+                    projects.insert(&l.project_path);
+                }
+                projects.len()
+            })
+            .unwrap_or(0)
+    }
+
+    pub(super) fn display_project_name(&self, path: &str) -> String {
+        if path == self.paths.home_dir.to_string_lossy() {
+            "Global".to_string()
+        } else {
+            crate::fs_util::basename(path).to_string()
+        }
+    }
+
     pub(super) fn clamp_all_selections(&mut self) {
         let skill_len = self.skill_dirs.len();
         if skill_len > 0 && self.skills_state.selected_skill >= skill_len {
@@ -278,6 +392,11 @@ impl App {
             self.projects_state.tree_cursor = tree_len - 1;
         }
 
+        let proj_link_len = self.selected_skill_project_entries().len();
+        if proj_link_len > 0 && self.skills_state.selected_project_link >= proj_link_len {
+            self.skills_state.selected_project_link = proj_link_len - 1;
+        }
+
         self.sync_list_states();
     }
 
@@ -289,6 +408,12 @@ impl App {
             self.skills_state
                 .tag_list_state
                 .select(Some(self.skills_state.selected_tag));
+        }
+        let entries = self.selected_skill_project_entries();
+        if !entries.is_empty() {
+            self.skills_state
+                .project_link_list_state
+                .select(Some(self.skills_state.selected_project_link));
         }
         self.projects_state
             .tree_list_state
@@ -336,8 +461,10 @@ impl App {
             skills_state: SkillsScreenState {
                 selected_skill: 0,
                 selected_tag: 0,
+                selected_project_link: 0,
                 skill_list_state: ListState::default(),
                 tag_list_state: ListState::default(),
+                project_link_list_state: ListState::default(),
             },
             projects_state: ProjectsScreenState {
                 selected_project: 0,
@@ -349,6 +476,9 @@ impl App {
             text_input: None,
             tree_rows: Vec::new(),
             tag_skills: BTreeMap::new(),
+            skill_project_links: BTreeMap::new(),
+            unlink_modal: None,
+            delete_modal: None,
         }
     }
 }

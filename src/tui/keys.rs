@@ -2,14 +2,21 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::linker;
+use crate::remover;
 use crate::tagger;
 
-use super::app::{App, Panel, Screen, TextInputState, TreeRow};
+use super::app::{App, DeleteModalState, Panel, Screen, TextInputState, TreeRow, UnlinkModalState};
 
 impl App {
     pub(super) fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) -> Result<()> {
         if self.text_input.is_some() {
             return self.handle_text_input_key(code);
+        }
+        if self.unlink_modal.is_some() {
+            return self.handle_unlink_modal_key(code);
+        }
+        if self.delete_modal.is_some() {
+            return self.handle_delete_modal_key(code);
         }
 
         self.status_msg.clear();
@@ -18,17 +25,27 @@ impl App {
             KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
                 self.should_quit = true;
             }
-            KeyCode::Char('q') => self.should_quit = true,
+            KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
             KeyCode::Char('1') => {
                 self.screen = Screen::Skills;
                 self.panel = Panel::Left;
             }
             KeyCode::Char('2') => self.switch_projects_screen(Screen::Claude),
             KeyCode::Char('3') => self.switch_projects_screen(Screen::Codex),
-            KeyCode::Left | KeyCode::Right => {
-                self.panel = match self.panel {
-                    Panel::Left => Panel::Right,
-                    Panel::Right => Panel::Left,
+            KeyCode::Right => {
+                self.panel = match (self.screen, self.panel) {
+                    (Screen::Skills, Panel::Left) => Panel::Middle,
+                    (Screen::Skills, Panel::Middle) => Panel::Right,
+                    (_, Panel::Left | Panel::Middle) => Panel::Right,
+                    _ => self.panel,
+                };
+            }
+            KeyCode::Left => {
+                self.panel = match (self.screen, self.panel) {
+                    (Screen::Skills, Panel::Right) => Panel::Middle,
+                    (Screen::Skills, Panel::Middle) => Panel::Left,
+                    (_, Panel::Right) => Panel::Left,
+                    _ => self.panel,
                 };
             }
             _ => {
@@ -60,12 +77,14 @@ impl App {
     fn handle_skills_screen_key(&mut self, code: KeyCode) -> Result<()> {
         match self.panel {
             Panel::Left => self.handle_skill_list_key(code),
-            Panel::Right => self.handle_tag_list_key(code),
+            Panel::Middle => self.handle_tag_list_key(code),
+            Panel::Right => self.handle_skill_project_link_key(code),
         }
     }
 
     fn handle_skill_list_key(&mut self, code: KeyCode) -> Result<()> {
         let len = self.skill_dirs.len();
+        let prev = self.skills_state.selected_skill;
         match code {
             KeyCode::Up | KeyCode::Char('k') => {
                 self.skills_state.selected_skill =
@@ -76,7 +95,19 @@ impl App {
                     self.skills_state.selected_skill += 1;
                 }
             }
+            KeyCode::Char('d') => {
+                if let Some(skill) = self
+                    .skill_dirs
+                    .get(self.skills_state.selected_skill)
+                    .cloned()
+                {
+                    self.delete_modal = Some(DeleteModalState { skill });
+                }
+            }
             _ => {}
+        }
+        if self.skills_state.selected_skill != prev {
+            self.skills_state.selected_project_link = 0;
         }
         Ok(())
     }
@@ -134,11 +165,119 @@ impl App {
         Ok(())
     }
 
+    fn handle_skill_project_link_key(&mut self, code: KeyCode) -> Result<()> {
+        let entries = self.selected_skill_project_entries();
+        let len = entries.len();
+        match code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.skills_state.selected_project_link =
+                    self.skills_state.selected_project_link.saturating_sub(1);
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if len > 0 && self.skills_state.selected_project_link + 1 < len {
+                    self.skills_state.selected_project_link += 1;
+                }
+            }
+            KeyCode::Char(' ') | KeyCode::Enter => {
+                if let Some(entry) = entries.get(self.skills_state.selected_project_link) {
+                    let skill = self
+                        .skill_dirs
+                        .get(self.skills_state.selected_skill)
+                        .cloned()
+                        .unwrap_or_default();
+                    self.unlink_modal = Some(UnlinkModalState {
+                        skill,
+                        project_path: entry.project_path.clone(),
+                        project_name: entry.project_name.clone(),
+                        claude_linked: entry.has_claude,
+                        codex_linked: entry.has_codex,
+                        claude_checked: entry.has_claude,
+                        codex_checked: entry.has_codex,
+                        cursor: 0,
+                    });
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    // ── Unlink Modal ──
+
+    fn handle_unlink_modal_key(&mut self, code: KeyCode) -> Result<()> {
+        let state = self.unlink_modal.as_mut().unwrap();
+        match code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                state.cursor = state.cursor.saturating_sub(1);
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if state.cursor < 1 {
+                    state.cursor = 1;
+                }
+            }
+            KeyCode::Char(' ') => match state.cursor {
+                0 => state.claude_checked = !state.claude_checked,
+                _ => state.codex_checked = !state.codex_checked,
+            },
+            KeyCode::Enter => {
+                let skill = state.skill.clone();
+                let project_path = state.project_path.clone();
+                let project_name = state.project_name.clone();
+                let path = std::path::Path::new(&project_path);
+
+                let mut unlinked = Vec::new();
+                if state.claude_linked && !state.claude_checked {
+                    linker::unlink_skill(path, &skill, crate::fs_util::Tool::Claude)?;
+                    unlinked.push("Claude");
+                }
+                if state.codex_linked && !state.codex_checked {
+                    linker::unlink_skill(path, &skill, crate::fs_util::Tool::Codex)?;
+                    unlinked.push("Codex");
+                }
+
+                self.unlink_modal = None;
+                if !unlinked.is_empty() {
+                    self.status_msg = format!(
+                        "Unlinked {} from {} ({})",
+                        skill,
+                        project_name,
+                        unlinked.join(", ")
+                    );
+                    self.reload_all_project_links_all_tools();
+                }
+            }
+            KeyCode::Esc => {
+                self.unlink_modal = None;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    // ── Delete Modal ──
+
+    fn handle_delete_modal_key(&mut self, code: KeyCode) -> Result<()> {
+        match code {
+            KeyCode::Enter => {
+                let skill = self.delete_modal.as_ref().unwrap().skill.clone();
+                self.delete_modal = None;
+                remover::remove_skill(&self.paths, &skill, &self.project_paths)?;
+                self.status_msg = format!("Deleted {}", skill);
+                self.reload()?;
+            }
+            KeyCode::Esc => {
+                self.delete_modal = None;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     // ── Screen 2: Projects ──
 
     fn handle_projects_screen_key(&mut self, code: KeyCode) -> Result<()> {
         match self.panel {
-            Panel::Left => self.handle_project_list_key(code),
+            Panel::Left | Panel::Middle => self.handle_project_list_key(code),
             Panel::Right => self.handle_tree_key(code),
         }
     }
@@ -221,6 +360,7 @@ impl App {
                         format!("Linked [{}] to {} ({} skills)", tag, project_name, count);
                 }
                 self.reload_project_links(&project);
+                self.reload_all_project_links_all_tools();
             }
             TreeRow::Skill { skill } | TreeRow::UntaggedSkill { skill } => {
                 if self.is_skill_linked_to_selected(&skill) {
@@ -231,6 +371,7 @@ impl App {
                     self.status_msg = format!("Linked {} to {}", skill, project_name);
                 }
                 self.reload_project_links(&project);
+                self.reload_all_project_links_all_tools();
             }
             TreeRow::UntaggedHeader { .. } => {}
         }
@@ -353,17 +494,38 @@ mod tests {
     }
 
     #[test]
-    fn right_arrow_switches_panel_to_right() {
+    fn skills_screen_right_arrow_cycles_left_middle_right() {
         let mut app = App::new_test();
         assert_eq!(app.panel, Panel::Left);
+        app.handle_key(KeyCode::Right, KeyModifiers::NONE).unwrap();
+        assert_eq!(app.panel, Panel::Middle);
+        app.handle_key(KeyCode::Right, KeyModifiers::NONE).unwrap();
+        assert_eq!(app.panel, Panel::Right);
+        // clamp at Right
         app.handle_key(KeyCode::Right, KeyModifiers::NONE).unwrap();
         assert_eq!(app.panel, Panel::Right);
     }
 
     #[test]
-    fn left_arrow_switches_panel_to_left() {
+    fn skills_screen_left_arrow_cycles_right_middle_left() {
         let mut app = App::new_test();
         app.panel = Panel::Right;
+        app.handle_key(KeyCode::Left, KeyModifiers::NONE).unwrap();
+        assert_eq!(app.panel, Panel::Middle);
+        app.handle_key(KeyCode::Left, KeyModifiers::NONE).unwrap();
+        assert_eq!(app.panel, Panel::Left);
+        // clamp at Left
+        app.handle_key(KeyCode::Left, KeyModifiers::NONE).unwrap();
+        assert_eq!(app.panel, Panel::Left);
+    }
+
+    #[test]
+    fn projects_screen_arrows_skip_middle() {
+        let mut app = App::new_test();
+        app.screen = Screen::Claude;
+        app.panel = Panel::Left;
+        app.handle_key(KeyCode::Right, KeyModifiers::NONE).unwrap();
+        assert_eq!(app.panel, Panel::Right);
         app.handle_key(KeyCode::Left, KeyModifiers::NONE).unwrap();
         assert_eq!(app.panel, Panel::Left);
     }
@@ -387,6 +549,25 @@ mod tests {
         app.handle_key(KeyCode::Char('q'), KeyModifiers::NONE)
             .unwrap();
         assert!(app.should_quit);
+    }
+
+    #[test]
+    fn esc_key_quits() {
+        let mut app = App::new_test();
+        app.handle_key(KeyCode::Esc, KeyModifiers::NONE).unwrap();
+        assert!(app.should_quit);
+    }
+
+    #[test]
+    fn esc_closes_text_input_without_quitting() {
+        let mut app = App::new_test();
+        app.text_input = Some(TextInputState {
+            input: "test".into(),
+            cursor: 4,
+        });
+        app.handle_key(KeyCode::Esc, KeyModifiers::NONE).unwrap();
+        assert!(!app.should_quit);
+        assert!(app.text_input.is_none());
     }
 
     #[test]

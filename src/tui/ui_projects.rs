@@ -118,7 +118,7 @@ fn render_tree_view(frame: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn render_project_list(frame: &mut Frame, area: Rect, app: &mut App) {
-    let focused = app.panel == Panel::Left;
+    let focused = matches!(app.panel, Panel::Left | Panel::Middle);
     let theme = PanelTheme::new(focused);
 
     if app.project_paths.is_empty() {
@@ -135,7 +135,7 @@ fn render_project_list(frame: &mut Frame, area: Rect, app: &mut App) {
         .project_paths
         .iter()
         .map(|path| {
-            let name = crate::fs_util::basename(path);
+            let name = app.display_project_name(path);
             let count = app.linked_count(path);
 
             let count_style = if count > 0 {

@@ -44,22 +44,24 @@ Run `skilltree` with no arguments to launch the interactive terminal UI.
 
 Switch between three screens with `1`, `2`, and `3`. The focused panel is highlighted while the other panel dims automatically.
 
-### Screen 1 — Skills & Tags
+### Screen 1 — Skills, Tags & Projects
 
-Organize your skills with tags. Select a skill on the left, toggle tags on the right.
+Organize your skills with tags and see which projects each skill is linked to. Three panels: skills on the left, tags in the middle, linked projects on the right.
 
 ```
- Skill Tree   12 skills  5 tags       1:Skills  2:Claude  3:Codex
-+- Skills -------------------------+ +- Tags ---------------------------+
-| > auth-middleware  [api,sec]      | |   [x] api                       |
-|   db-migrations    [db]           | |   [ ] db                        |
-|   error-handling   [api]          | |   [ ] frontend                  |
-|   graphql-setup                   | |   [x] sec                       |
-|   react-patterns   [frontend]     | |   [ ] testing                   |
-|   test-helpers     [testing]      | |                                 |
-+-----------------------------------+ +-----------------------------------+
- 1/2/3:screen  <->:focus  up/dn:select  Space:toggle  a:new tag  q:quit
+ Skill Tree   12 skills  5 tags           1:Skills  2:Claude  3:Codex
++- Skills --------------------+ +- Tags --------+ +- Projects --------+
+| > auth-middleware [api,sec] | |   [x] api     | |   my-api      C·X |
+|   db-migrations   [db]     | |   [ ] db       | |   web-app     C   |
+|   error-handling  [api]    | |   [ ] frontend | |   Global      C   |
+|   graphql-setup            | |   [x] sec      | |                   |
+|   react-patterns  [front]  | |   [ ] testing  | |                   |
+|   test-helpers    [testing]| |                | |                   |
++-----------------------------+ +----------------+ +-------------------+
+ 1/2/3:screen  <->:focus  up/dn:select  Space:toggle  a:new tag  d:delete  Esc:quit
 ```
+
+The **Projects** panel shows where the selected skill is linked, with tool indicators: **C** = Claude, **X** = Codex. Press `Space` on a linked project to open an unlink modal where you can choose which tool to unlink.
 
 ### Screen 2/3 — Claude / Codex Projects
 
@@ -87,10 +89,11 @@ Link skills to projects per agent. Select a project on the left, then toggle ski
 | `1` `2` `3` | Switch screen |
 | `Left` `Right` | Switch panel focus |
 | `Up` `Down` `j` `k` | Navigate |
-| `Space` | Toggle tag / link |
+| `Space` | Toggle tag / link / unlink |
 | `Enter` | Fold/unfold tag group |
 | `a` | Add new tag |
-| `q` | Quit |
+| `d` | Delete skill |
+| `Esc` | Close modal / Quit |
 
 <br>
 
