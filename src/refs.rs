@@ -65,7 +65,7 @@ fn extract_markdown_refs(line: &str) -> Vec<String> {
     refs
 }
 
-fn normalize_ref(raw: &str, allow_general_relative_paths: bool) -> Option<String> {
+fn normalize_ref(raw: &str, is_markdown_link: bool) -> Option<String> {
     let trimmed = raw
         .trim_matches(|c: char| matches!(c, '`' | '"' | '\'' | '(' | '[' | '<' | '*' | '_'))
         .trim_end_matches(|c: char| {
@@ -89,14 +89,14 @@ fn normalize_ref(raw: &str, allow_general_relative_paths: bool) -> Option<String
         return None;
     }
 
-    if !is_path_like(normalized, allow_general_relative_paths) {
+    if !is_path_like(normalized, is_markdown_link) {
         return None;
     }
 
     Some(normalized.to_string())
 }
 
-fn is_path_like(path: &str, allow_general_relative_paths: bool) -> bool {
+fn is_path_like(path: &str, is_markdown_link: bool) -> bool {
     if !path
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '_' | '-'))
@@ -112,17 +112,38 @@ fn is_path_like(path: &str, allow_general_relative_paths: bool) -> bool {
             return false;
         }
 
-        return allow_general_relative_paths
-            || INLINE_DIR_PREFIXES
-                .iter()
-                .any(|prefix| path.starts_with(prefix))
-            || path
-                .rsplit('/')
-                .next()
-                .is_some_and(|segment| segment.contains('.'));
+        // Only check paths under known skill-internal directories.
+        // Paths like `src/thahmm/entities/Book.ts` are example code paths,
+        // not files that should exist inside the skill directory.
+        return INLINE_DIR_PREFIXES
+            .iter()
+            .any(|prefix| path.starts_with(prefix));
     }
 
-    path.contains('.')
+    // Sibling file (no slash): only detect in markdown links,
+    // and must look like an actual filename (not `e.g`, `Next.js`, `0.84.0`)
+    is_markdown_link && has_file_extension(path)
+}
+
+/// Check if a string looks like a filename with a proper extension.
+/// Filters out version numbers (`0.84.0`), abbreviations (`e.g`),
+/// framework names (`Next.js`), and bare extensions (`.html`).
+fn has_file_extension(path: &str) -> bool {
+    if path.starts_with('.') {
+        return false;
+    }
+
+    let Some((base, ext)) = path.rsplit_once('.') else {
+        return false;
+    };
+
+    // Base must be at least 2 chars and not purely numeric/dots
+    if base.len() < 2 || base.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        return false;
+    }
+
+    // Extension must be 1-5 alphabetic chars
+    !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphabetic())
 }
 
 /// Validate references in a single skill directory.
@@ -372,5 +393,44 @@ mod tests {
         let broken = validate_all_refs(tmp.path()).unwrap();
         assert_eq!(broken.len(), 1);
         assert_eq!(broken[0].skill_name, "skill-a");
+    }
+
+    #[test]
+    fn extract_refs_ignores_non_skill_paths() {
+        // Version numbers, abbreviations, framework names, extensions,
+        // code identifiers, and example project paths should NOT be detected
+        let content = "\
+            Use Next.js and Node.js for the frontend.\n\
+            Version 0.84.0 is required, see section 1.3.4.\n\
+            e.g. use flow.map or viewModelScope.launch for async.\n\
+            Supports .html, .tsx, and .svelte files.\n\
+            See src/thahmm/entities/Book.ts for the entity.\n\
+            Edit package.json and metro.config.js as needed.\n\
+            Check [guide](src/app/page.tsx) for examples.\n\
+            Use MaterialTheme.colorScheme.primary for theming.\n\
+        ";
+        let refs = extract_refs(content);
+        assert!(refs.is_empty(), "Expected no refs, got: {:?}", refs);
+    }
+
+    #[test]
+    fn extract_refs_still_detects_real_skill_refs() {
+        let content = "\
+            See references/guide.md for details.\n\
+            Run `scripts/deploy.sh` to deploy.\n\
+            Check [forms](FORMS.md) and [logo](assets/logo.png).\n\
+            Agent config: agents/default.yaml\n\
+        ";
+        let refs = extract_refs(content);
+        assert_eq!(
+            refs,
+            vec![
+                "FORMS.md",
+                "agents/default.yaml",
+                "assets/logo.png",
+                "references/guide.md",
+                "scripts/deploy.sh",
+            ]
+        );
     }
 }
